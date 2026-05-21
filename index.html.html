@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LiftLog" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <title>LiftLog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0f0f0f; color: #f0ede8; font-family: 'DM Mono', monospace; }
+    body { padding-bottom: env(safe-area-inset-bottom); }
+    input, select, textarea, button { font-family: 'DM Mono', monospace; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #1a1a1a; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    #app { min-height: 100vh; padding-bottom: 80px; }
+
+    /* Header */
+    #header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 20px 20px 0;
+      position: sticky; top: 0; z-index: 10;
+    }
+    #header-top { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; }
+    .logo { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 900; letter-spacing: -0.02em; }
+    .logo span { color: #e8562a; }
+    .logo-sub { font-size: 10px; color: #555; letter-spacing: 0.1em; margin-top: 2px; }
+    .stats { display: flex; gap: 20px; align-items: center; }
+    .stat { text-align: right; }
+    .stat-label { font-size: 10px; color: #555; letter-spacing: 0.08em; margin-bottom: 2px; }
+    .stat-val { font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; color: #f0ede8; }
+    .stat-val.accent { color: #e8562a; }
+    .stat-val.dim { color: #333; }
+    nav { display: flex; }
+    .nav-btn {
+      background: none; border: none; cursor: pointer; color: #555;
+      font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 8px 16px; border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-btn.active { color: #f0ede8; border-bottom-color: #e8562a; }
+
+    /* Content */
+    #content { padding: 20px; }
+    .section-label { font-size: 10px; color: #555; letter-spacing: 0.1em; margin-bottom: 14px; }
+
+    /* Week bars */
+    #week-card {
+      background: #141414; border: 1px solid #1e1e1e; border-radius: 10px;
+      padding: 16px; margin-bottom: 20px;
+    }
+    #week-bars { display: flex; gap: 8px; }
+    .week-bar { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; cursor: pointer; }
+    .bar-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 48px; }
+    .bar { width: 20px; border-radius: 4px 4px 2px 2px; min-height: 3px; transition: height 0.3s ease, background 0.2s; }
+    .bar-day { font-size: 9px; color: #555; letter-spacing: 0.06em; }
+    .bar-day.today { color: #e8562a; font-weight: 500; }
+    .bar-count { font-size: 9px; color: #666; }
+
+    /* Form */
+    #form-card {
+      background: #141414; border: 1px solid #1e1e1e; border-radius: 10px;
+      padding: 16px; margin-bottom: 20px;
+    }
+    .form-grid { display: grid; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 10px; letter-spacing: 0.12em; color: #666; text-transform: uppercase; }
+    .field input, .field select {
+      background: #1a1a1a; border: 1px solid #2a2a2a; color: #f0ede8;
+      border-radius: 6px; padding: 10px 12px; font-size: 13px; outline: none;
+      transition: border-color 0.15s; width: 100%;
+    }
+    .field input:focus, .field select:focus { border-color: #e8562a; }
+    .field select option { background: #1a1a1a; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Per-set reps */
+    #set-reps-section { display: none; }
+    #set-reps-section.visible { display: block; }
+    #set-reps-label { font-size: 10px; color: #555; letter-spacing: 0.1em; margin-bottom: 10px; }
+    #set-reps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; }
+    .set-rep-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .set-rep-col span { font-size: 9px; color: #444; letter-spacing: 0.06em; }
+    .set-rep-input {
+      background: #1a1a1a; border: 1px solid #2a2a2a; color: #f0ede8;
+      border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none;
+      transition: border-color 0.15s; width: 100%; text-align: center;
+    }
+    .set-rep-input:focus { border-color: #e8562a; }
+
+    .btn-primary {
+      background: #e8562a; color: #fff; border: none; border-radius: 6px;
+      padding: 12px 24px; font-size: 13px; font-weight: 500; cursor: pointer;
+      letter-spacing: 0.06em; transition: opacity 0.15s, transform 0.1s; width: 100%;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:active { transform: scale(0.97); }
+
+    /* Exercise cards */
+    .ex-list { display: flex; flex-direction: column; gap: 8px; }
+    .exercise-card {
+      background: #161616; border: 1px solid #222; border-radius: 10px;
+      padding: 14px 16px; display: flex; justify-content: space-between;
+      align-items: flex-start; gap: 12px;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .ex-inner { display: flex; gap: 12px; align-items: flex-start; flex: 1; }
+    .ex-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+    }
+    .ex-body { flex: 1; }
+    .ex-name { font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #f0ede8; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+    .tag { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 4px; padding: 2px 8px; font-size: 10px; color: #888; }
+    .tag.reps { color: #aaa; }
+    .set-breakdown { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .set-pip { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .set-pip-label { font-size: 8px; color: #444; letter-spacing: 0.06em; }
+    .set-pip-val { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 4px; padding: 2px 8px; font-size: 11px; color: #ccc; }
+    .ex-note { font-size: 11px; color: #555; margin-top: 4px; font-style: italic; }
+    .remove-btn {
+      background: none; border: none; color: #444; cursor: pointer;
+      font-size: 18px; padding: 4px; line-height: 1; transition: color 0.15s;
+    }
+    .remove-btn:hover { color: #e8562a; }
+
+    .empty { text-align: center; color: #333; font-size: 12px; padding: 40px 0; letter-spacing: 0.06em; }
+
+    /* History older sessions */
+    .older-sessions { margin-top: 28px; }
+    .day-btn {
+      background: none; border: 1px solid #1e1e1e; border-radius: 6px;
+      padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; color: #888; font-size: 12px; width: 100%; margin-bottom: 2px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .day-btn.selected { background: #1e1e1e; border-color: #333; }
+    .day-btn span:last-child { color: #555; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-top">
+      <div>
+        <div class="logo">LIFT<span>LOG</span></div>
+        <div class="logo-sub">EXERCISE TRACKER</div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">STREAK</div>
+          <div class="stat-val dim" id="streak-val">0d</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">THIS WEEK</div>
+          <div class="stat-val" id="week-val">0</div>
+        </div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="log">log</button>
+      <button class="nav-btn" data-view="history">history</button>
+    </nav>
+  </div>
+
+  <div id="content">
+    <!-- Week bars -->
+    <div id="week-card">
+      <div class="section-label">WEEK ACTIVITY</div>
+      <div id="week-bars"></div>
+    </div>
+
+    <!-- Log view -->
+    <div id="view-log">
+      <div class="section-label" id="today-label"></div>
+      <div id="form-card">
+        <div class="form-grid">
+          <div class="field">
+            <label>Exercise Name</label>
+            <input id="f-name" type="text" placeholder="e.g. Bench Press, 5k Run…" />
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select id="f-category">
+              <option value="strength">🏋️ Strength</option>
+              <option value="cardio">🏃 Cardio</option>
+              <option value="flexibility">🧘 Flexibility</option>
+              <option value="sports">⚽ Sports</option>
+              <option value="other">✦ Other</option>
+            </select>
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>Sets</label>
+              <input id="f-sets" type="number" placeholder="—" min="1" max="20" />
+            </div>
+            <div class="field">
+              <label>Weight (lbs)</label>
+              <input id="f-weight" type="number" placeholder="—" min="0" />
+            </div>
+          </div>
+          <div id="set-reps-section">
+            <div id="set-reps-label">REPS PER SET</div>
+            <div id="set-reps-grid"></div>
+          </div>
+          <div class="field">
+            <label>Duration (min)</label>
+            <input id="f-duration" type="number" placeholder="—" min="1" />
+          </div>
+          <div class="field">
+            <label>Note (optional)</label>
+            <input id="f-note" type="text" placeholder="How did it feel?" />
+          </div>
+          <button class="btn-primary" id="log-btn">+ Log Exercise</button>
+        </div>
+      </div>
+      <div id="today-list"></div>
+    </div>
+
+    <!-- History view -->
+    <div id="view-history" style="display:none">
+      <div class="section-label" id="history-label"></div>
+      <div id="history-list"></div>
+      <div class="older-sessions" id="older-sessions"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = {
+  strength: { label: "Strength", icon: "🏋️", color: "#e8562a" },
+  cardio:   { label: "Cardio",   icon: "🏃",  color: "#f0a500" },
+  flexibility: { label: "Flexibility", icon: "🧘", color: "#3aafa9" },
+  sports:   { label: "Sports",   icon: "⚽",  color: "#5c6bc0" },
+  other:    { label: "Other",    icon: "✦",  color: "#888" },
+};
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function getTodayKey() { return new Date().toISOString().slice(0,10); }
+function getLast7Days() {
+  return Array.from({length:7},(_,i)=>{
+    const d=new Date(); d.setDate(d.getDate()-(6-i));
+    return d.toISOString().slice(0,10);
+  });
+}
+function formatDate(iso) {
+  const d=new Date(iso+"T12:00:00");
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+}
+
+// Storage
+function loadLogs() {
+  try { return JSON.parse(localStorage.getItem("liftlog-data") || "{}"); } catch { return {}; }
+}
+function saveLogs(logs) {
+  localStorage.setItem("liftlog-data", JSON.stringify(logs));
+}
+
+let logs = loadLogs();
+let currentView = "log";
+let selectedDay = getTodayKey();
+let setRepsValues = []; // current per-set rep inputs
+
+// ---- Render ----
+
+function render() {
+  renderStats();
+  renderWeekBars();
+  if (currentView === "log") renderLogView();
+  else renderHistoryView();
+}
+
+function renderStats() {
+  const last7 = getLast7Days();
+  const total = last7.reduce((s,d) => s + (logs[d]||[]).length, 0);
+  document.getElementById("week-val").textContent = total;
+
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.toISOString().slice(0,10);
+    if (logs[key]?.length) { streak++; d.setDate(d.getDate()-1); } else break;
+  }
+  const sv = document.getElementById("streak-val");
+  sv.textContent = streak + "d";
+  sv.className = "stat-val " + (streak ? "accent" : "dim");
+}
+
+function renderWeekBars() {
+  const last7 = getLast7Days();
+  const counts = last7.map(d => (logs[d]||[]).length);
+  const maxCount = Math.max(...counts, 1);
+  const container = document.getElementById("week-bars");
+  container.innerHTML = "";
+  last7.forEach((day, i) => {
+    const count = counts[i];
+    const isToday = day === getTodayKey();
+    const isSelected = day === selectedDay && currentView === "history";
+    const h = count ? Math.max(8, (count/maxCount)*44) : 3;
+    const dayLabel = DAYS[new Date(day+"T12:00:00").getDay()];
+    const barColor = isSelected ? "#e8562a" : count ? (isToday ? "#e8562a" : "#2e2e2e") : "#1e1e1e";
+
+    const div = document.createElement("div");
+    div.className = "week-bar";
+    div.innerHTML = `
+      <div class="bar-wrap"><div class="bar" style="height:${h}px;background:${barColor};opacity:${count?1:0.5}"></div></div>
+      <div class="bar-day${isToday?" today":""}">${dayLabel}</div>
+      ${count > 0 ? `<div class="bar-count">${count}</div>` : ""}
+    `;
+    div.addEventListener("click", () => {
+      selectedDay = day;
+      currentView = "history";
+      setActiveNav("history");
+      render();
+    });
+    container.appendChild(div);
+  });
+}
+
+function renderLogView() {
+  document.getElementById("view-log").style.display = "";
+  document.getElementById("view-history").style.display = "none";
+  const today = getTodayKey();
+  document.getElementById("today-label").textContent = "TODAY — " + formatDate(today).toUpperCase();
+  renderExList(document.getElementById("today-list"), logs[today] || [], today);
+}
+
+function renderHistoryView() {
+  document.getElementById("view-log").style.display = "none";
+  document.getElementById("view-history").style.display = "";
+  const list = logs[selectedDay] || [];
+  const isToday = selectedDay === getTodayKey();
+  document.getElementById("history-label").textContent =
+    (isToday ? "TODAY" : formatDate(selectedDay).toUpperCase()) +
+    ` — ${list.length} EXERCISE${list.length !== 1 ? "S" : ""}`;
+  renderExList(document.getElementById("history-list"), list, selectedDay);
+
+  const last7 = getLast7Days();
+  const older = Object.keys(logs).filter(k => !last7.includes(k) && logs[k].length > 0).sort().reverse();
+  const olderEl = document.getElementById("older-sessions");
+  if (older.length === 0) { olderEl.innerHTML = ""; return; }
+  olderEl.innerHTML = `<div class="section-label">OLDER SESSIONS</div>`;
+  older.forEach(dateKey => {
+    const btn = document.createElement("button");
+    btn.className = "day-btn" + (dateKey === selectedDay ? " selected" : "");
+    btn.innerHTML = `<span>${formatDate(dateKey)}</span><span>${logs[dateKey].length} ex</span>`;
+    btn.addEventListener("click", () => { selectedDay = dateKey; render(); });
+    olderEl.appendChild(btn);
+  });
+}
+
+function renderExList(container, list, dateKey) {
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty">NO EXERCISES${dateKey === getTodayKey() ? " LOGGED TODAY" : " ON THIS DAY"}</div>`;
+    return;
+  }
+  container.innerHTML = "";
+  const ul = document.createElement("div");
+  ul.className = "ex-list";
+  list.forEach(ex => ul.appendChild(buildExCard(ex, dateKey)));
+  container.appendChild(ul);
+}
+
+function buildExCard(ex, dateKey) {
+  const cat = CATEGORIES[ex.category] || CATEGORIES.other;
+  const hasPerSetReps = ex.setReps && ex.setReps.length > 0 && ex.setReps.some(r => r !== "");
+  let repsSummary = null;
+  if (hasPerSetReps) {
+    const filled = ex.setReps.map(r => r || "?");
+    const allSame = filled.every(r => r === filled[0]);
+    repsSummary = allSame ? `${filled.length}×${filled[0]}` : filled.join(", ");
+  } else if (ex.sets) {
+    repsSummary = `${ex.sets} set${ex.sets > 1 ? "s" : ""}`;
+  }
+
+  const card = document.createElement("div");
+  card.className = "exercise-card";
+
+  let setBreakdownHTML = "";
+  if (hasPerSetReps) {
+    const filled = ex.setReps.map(r => r || "?");
+    const allSame = filled.every(r => r === filled[0]);
+    if (!allSame) {
+      setBreakdownHTML = `<div class="set-breakdown">` +
+        ex.setReps.map((r,i) => `
+          <div class="set-pip">
+            <span class="set-pip-label">S${i+1}</span>
+            <div class="set-pip-val">${r || "—"}</div>
+          </div>`).join("") +
+        `</div>`;
+    }
+  }
+
+  const extraTags = [
+    ex.weight ? `<span class="tag">${ex.weight} lbs</span>` : "",
+    ex.duration ? `<span class="tag">${ex.duration} min</span>` : "",
+  ].filter(Boolean).join("");
+
+  card.innerHTML = `
+    <div class="ex-inner">
+      <div class="ex-icon" style="background:${cat.color}18;border:1px solid ${cat.color}33">${cat.icon}</div>
+      <div class="ex-body">
+        <div class="ex-name">${ex.name}</div>
+        ${repsSummary ? `<div class="tags"><span class="tag reps">${repsSummary}</span></div>` : ""}
+        ${setBreakdownHTML}
+        ${extraTags ? `<div class="tags">${extraTags}</div>` : ""}
+        ${ex.note ? `<div class="ex-note">${ex.note}</div>` : ""}
+      </div>
+    </div>
+    <button class="remove-btn" title="Remove">×</button>
+  `;
+  card.querySelector(".remove-btn").addEventListener("click", () => {
+    logs[dateKey] = (logs[dateKey]||[]).filter(e => e.id !== ex.id);
+    if (!logs[dateKey].length) delete logs[dateKey];
+    saveLogs(logs);
+    render();
+  });
+  return card;
+}
+
+// ---- Set reps UI ----
+function updateSetRepsUI() {
+  const numSets = Math.min(20, Math.max(0, parseInt(document.getElementById("f-sets").value) || 0));
+  const section = document.getElementById("set-reps-section");
+  const grid = document.getElementById("set-reps-grid");
+
+  if (numSets === 0) {
+    section.classList.remove("visible");
+    setRepsValues = [];
+    return;
+  }
+  section.classList.add("visible");
+
+  // Preserve existing values, trim or extend
+  while (setRepsValues.length < numSets) setRepsValues.push("");
+  setRepsValues = setRepsValues.slice(0, numSets);
+
+  grid.innerHTML = "";
+  setRepsValues.forEach((val, i) => {
+    const col = document.createElement("div");
+    col.className = "set-rep-col";
+    col.innerHTML = `<span>S${i+1}</span><input class="set-rep-input" type="number" placeholder="—" min="1" value="${val}" />`;
+    col.querySelector("input").addEventListener("input", e => {
+      setRepsValues[i] = e.target.value;
+    });
+    grid.appendChild(col);
+  });
+}
+
+document.getElementById("f-sets").addEventListener("input", updateSetRepsUI);
+
+// ---- Log exercise ----
+document.getElementById("log-btn").addEventListener("click", () => {
+  const name = document.getElementById("f-name").value.trim();
+  if (!name) return;
+  const today = getTodayKey();
+  const entry = {
+    id: Date.now(),
+    name,
+    category: document.getElementById("f-category").value,
+    sets: document.getElementById("f-sets").value,
+    setReps: [...setRepsValues],
+    weight: document.getElementById("f-weight").value,
+    duration: document.getElementById("f-duration").value,
+    note: document.getElementById("f-note").value.trim(),
+  };
+  logs[today] = [...(logs[today]||[]), entry];
+  saveLogs(logs);
+
+  // Reset form
+  document.getElementById("f-name").value = "";
+  document.getElementById("f-sets").value = "";
+  document.getElementById("f-weight").value = "";
+  document.getElementById("f-duration").value = "";
+  document.getElementById("f-note").value = "";
+  setRepsValues = [];
+  updateSetRepsUI();
+
+  const btn = document.getElementById("log-btn");
+  btn.textContent = "✓ Logged!";
+  setTimeout(() => { btn.textContent = "+ Log Exercise"; }, 1800);
+
+  render();
+});
+
+// ---- Nav ----
+function setActiveNav(view) {
+  currentView = view;
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+}
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    setActiveNav(btn.dataset.view);
+    if (currentView === "history") selectedDay = getTodayKey();
+    render();
+  });
+});
+
+// ---- Init ----
+render();
+</script>
+</body>
+</html>
